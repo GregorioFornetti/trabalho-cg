@@ -1,11 +1,30 @@
 "use strict";
 
+const CUBE_SIZE = 3
+const FOWARD = 0
+const BACK = 1
+const LEFT = 2
+const RIGHT = 3
+
 var gl;
 var program;
 var model;
 var scene;
 
+var movement_functions = []
+var animation_start_time
+var animation_speed = 90
+var movement_list = []
+
+
 window.onload = function init() {
+
+	console.log(move_foward)
+	movement_functions[FOWARD] = move_foward
+	movement_functions[BACK] = move_back
+	movement_functions[LEFT] = move_left
+	movement_functions[RIGHT] = move_right
+	console.log(movement_functions)
 
 	// Get A WebGL context
 	var canvas = document.getElementById("gl-canvas");
@@ -21,7 +40,10 @@ window.onload = function init() {
 
 	scene = loadScene(model);
 
-	requestAnimationFrame(render);
+	movement_list.push(3)
+	render(0)
+	
+	requestAnimationFrame(render_movement);
 }
 
 function loadScene(model) { // list of objects
@@ -62,11 +84,11 @@ function loadScene(model) { // list of objects
 	var viewLocation = gl.getUniformLocation(program, "u_view");
 	var worldObjLocation = gl.getUniformLocation(program, "u_world");
 	var lightLocation = gl.getUniformLocation(program, "u_lightDirection");
-
+	
 	return {
 
 		// Objects
-		u_obj, worldObjLocation,
+		obj_offset: u_obj, objs: [vec3(0,0,0)], worldObjLocation,
 
 		// Light
 		u_lightDirection: light, lightLocation,
@@ -111,9 +133,7 @@ function loadModel() {
 	};
 }
 
-function render(time) {
-
-	time *= 0.001;  // convert to seconds
+function render(angle) {
 
 	resizeCanvasToDisplaySize(gl.canvas);
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -126,13 +146,36 @@ function render(time) {
 	gl.uniformMatrix4fv(scene.viewLocation, false, scene.u_view);
 	gl.uniformMatrix4fv(scene.projectionLocation, false, scene.u_projection);
 
-	let u_world = move_back(90, scene.u_obj)
+	for (let i = 0; i < scene.objs.length; i++) {
+		let obj = scene.objs[i]
+		let current_movement = movement_list[i]
+		let u_world = movement_functions[current_movement](angle, scene.obj_offset)
+		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj[0], CUBE_SIZE * obj[0], CUBE_SIZE * obj[0]), u_world)
 
-	gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
-	gl.bindVertexArray(model.vao);
-	gl.drawArrays(gl.TRIANGLES, 0, model.geometry.position.length / 3)
+		gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
+		gl.bindVertexArray(model.vao);
+		gl.drawArrays(gl.TRIANGLES, 0, model.geometry.position.length / 3)
+	}
+}
 
-	requestAnimationFrame(render);
+function render_movement(time) {
+	time = time * 0.001;  // convert to seconds
+
+	if (!animation_start_time) {
+		animation_start_time = time
+	}
+
+	let current_angle = Math.min(90, (time - animation_start_time) * animation_speed)
+
+	render(current_angle)
+
+	if (current_angle === 90) {
+		animation_start_time = null
+		return
+	}
+	else {
+		requestAnimationFrame(render_movement);
+	}
 }
 
 function move_left(angle, obj) {
