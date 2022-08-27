@@ -1,6 +1,6 @@
 "use strict";
 
-const CUBE_SIZE = 3
+const CUBE_SIZE = 2
 const FOWARD = 0
 const BACK = 1
 const LEFT = 2
@@ -13,18 +13,45 @@ var scene;
 
 var movement_functions = []
 var animation_start_time
-var animation_speed = 90
+var animation_speed = 90  // Graus por segundo
 var movement_list = []
+var move_cubes_buttons
+
+document.addEventListener(`DOMContentLoaded`, () => {
+	let foward_btn = document.getElementById(`move_foward`)
+	let back_btn = document.getElementById(`move_back`)
+	let left_btn = document.getElementById(`move_left`)
+	let right_btn = document.getElementById(`move_right`)
+
+	move_cubes_buttons = [foward_btn, back_btn, left_btn, right_btn]
+
+	foward_btn.addEventListener(`click`, () => move_function(FOWARD))
+	back_btn.addEventListener(`click`, () => move_function(BACK))
+	left_btn.addEventListener(`click`, () => move_function(LEFT))
+	right_btn.addEventListener(`click`, () => move_function(RIGHT))
+})
+
+function move_function(movement_type) {
+	movement_list.unshift(movement_type)
+	disable_cube_movement_btns()
+	requestAnimationFrame(render_movement)
+}
+
+function enable_cube_movement_btns() {
+	move_cubes_buttons.forEach((btn) => btn.disabled = false)
+}
+
+function disable_cube_movement_btns() {
+	move_cubes_buttons.forEach((btn) => btn.disabled = true)
+}
 
 
 window.onload = function init() {
 
-	console.log(move_foward)
 	movement_functions[FOWARD] = move_foward
 	movement_functions[BACK] = move_back
 	movement_functions[LEFT] = move_left
 	movement_functions[RIGHT] = move_right
-	console.log(movement_functions)
 
 	// Get A WebGL context
 	var canvas = document.getElementById("gl-canvas");
@@ -40,10 +67,9 @@ window.onload = function init() {
 
 	scene = loadScene(model);
 
-	movement_list.push(3)
+	movement_list.push(0)  // para mostrar algo na tela inicialmente, precisa ter algo no vetor
 	render(0)
-	
-	requestAnimationFrame(render_movement);
+	movement_list.pop()
 }
 
 function loadScene(model) { // list of objects
@@ -150,7 +176,7 @@ function render(angle) {
 		let obj = scene.objs[i]
 		let current_movement = movement_list[i]
 		let u_world = movement_functions[current_movement](angle, scene.obj_offset)
-		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj[0], CUBE_SIZE * obj[0], CUBE_SIZE * obj[0]), u_world)
+		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj[0], CUBE_SIZE * obj[1], CUBE_SIZE * obj[2]), u_world)
 
 		gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
 		gl.bindVertexArray(model.vao);
@@ -170,15 +196,35 @@ function render_movement(time) {
 	render(current_angle)
 
 	if (current_angle === 90) {
+		// Acabou o movimento
+
+		// Atualiza as posicoes de cada objeto
+		for (let i = 0; i < scene.objs.length; i++) {
+			let obj = scene.objs[i]
+			let current_movement = movement_list[i]
+
+			if (current_movement == FOWARD) {
+				obj[2] += 1
+			} else if (current_movement == BACK) {
+				obj[2] -= 1
+			} else if (current_movement == LEFT) {
+				obj[0] -= 1
+			} else {
+				obj[0] += 1
+			}
+		}
+
+		render(0)
+		enable_cube_movement_btns()
+		movement_list.pop()
 		animation_start_time = null
-		return
 	}
 	else {
 		requestAnimationFrame(render_movement);
 	}
 }
 
-function move_left(angle, obj) {
+function move_foward(angle, obj) {
 	let obj_tranlandado = m4.translation(-1, 1, -1, obj)  // Posiciona o objeto na posicao correta de ancora
 
 	let obj_rotacionado = m4.multiply(m4.xRotation(degToRad(angle)), obj_tranlandado)  // Rotaciona o objeto
@@ -186,7 +232,7 @@ function move_left(angle, obj) {
 	return m4.multiply(m4.translation(1, -1, 1), obj_rotacionado)  // Volta o objeto para a posic original
 }
 
-function move_right(angle, obj) {
+function move_back(angle, obj) {
 	let obj_tranlandado = m4.translation(1, 1, 1, obj)
 
 	let obj_rotacionado = m4.multiply(m4.xRotation(degToRad(-angle)), obj_tranlandado)
@@ -194,7 +240,7 @@ function move_right(angle, obj) {
 	return m4.multiply(m4.translation(-1, -1, -1), obj_rotacionado)
 }
 
-function move_foward(angle, obj) {
+function move_right(angle, obj) {
 	let obj_tranlandado = m4.translation(-1, 1, -1, obj)
 
 	let obj_rotacionado = m4.multiply(m4.zRotation(degToRad(-angle)), obj_tranlandado)
@@ -202,7 +248,7 @@ function move_foward(angle, obj) {
 	return m4.multiply(m4.translation(1, -1, 1), obj_rotacionado)
 }
 
-function move_back(angle, obj) {
+function move_left(angle, obj) {
 	let obj_tranlandado = m4.translation(1, 1, 1, obj)
 
 	let obj_rotacionado = m4.multiply(m4.zRotation(degToRad(angle)), obj_tranlandado)
