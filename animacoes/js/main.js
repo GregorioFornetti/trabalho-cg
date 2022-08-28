@@ -184,9 +184,9 @@ function render(angle) {
 		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj[0], CUBE_SIZE * obj[1], CUBE_SIZE * obj[2]), u_world)
 
 		if (i == 0) {
-			gl.uniform4fv(scene.u_diffuse, [0, 1, 0, 1])
+			gl.uniform4fv(scene.u_diffuse, [0, 1, 0, 1]) // Cor da cabeca da cobra
 		} else {
-			gl.uniform4fv(scene.u_diffuse, [0, 0.9, 0, 1])
+			gl.uniform4fv(scene.u_diffuse, [0, 0.9, 0, 1]) // Cor do corpo da cobra
 		}
 		gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
 		gl.bindVertexArray(model.vao);
