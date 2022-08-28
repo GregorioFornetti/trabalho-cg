@@ -6,14 +6,12 @@ function parseOBJ(text) {
   const objPositions = [[0, 0, 0]];
   const objTexcoords = [[0, 0]];
   const objNormals = [[0, 0, 0]];
-  const objColors = [[0, 0, 0]];
 
   // same order as `f` indices
   const objVertexData = [
     objPositions,
     objTexcoords,
     objNormals,
-    objColors,
   ];
 
   // same order as `f` indices
@@ -21,17 +19,7 @@ function parseOBJ(text) {
     [],   // positions
     [],   // texcoords
     [],   // normals
-    [],   // colors
   ];
-
-  const materialLibs = [];
-  const geometries = [];
-  let geometry;
-  let groups = ['default'];
-  let material = 'default';
-  let object = 'default';
-
-  const noop = () => { };
 
   function newGeometry() {
     // If there is an existing geometry and it's
@@ -39,33 +27,7 @@ function parseOBJ(text) {
     if (geometry && geometry.data.position.length) {
       geometry = undefined;
     }
-  }
-
-  function setGeometry() {
-    if (!geometry) {
-      const position = [];
-      const texcoord = [];
-      const normal = [];
-      const color = [];
-      webglVertexData = [
-        position,
-        texcoord,
-        normal,
-        color,
-      ];
-      geometry = {
-        object,
-        groups,
-        material,
-        data: {
-          position,
-          texcoord,
-          normal,
-          color,
-        },
-      };
-      geometries.push(geometry);
-    }
+    setGeometry();
   }
 
   function addVertex(vert) {
@@ -77,23 +39,12 @@ function parseOBJ(text) {
       const objIndex = parseInt(objIndexStr);
       const index = objIndex + (objIndex >= 0 ? 0 : objVertexData[i].length);
       webglVertexData[i].push(...objVertexData[i][index]);
-      // if this is the position index (index 0) and we parsed
-      // vertex colors then copy the vertex colors to the webgl vertex color data
-      if (i === 0 && objColors.length > 1) {
-        geometry.data.color.push(...objColors[index]);
-      }
     });
   }
 
   const keywords = {
     v(parts) {
-      // if there are more than 3 values here they are vertex colors
-      if (parts.length > 3) {
-        objPositions.push(parts.slice(0, 3).map(parseFloat));
-        objColors.push(parts.slice(3).map(parseFloat));
-      } else {
-        objPositions.push(parts.map(parseFloat));
-      }
+      objPositions.push(parts.map(parseFloat));
     },
     vn(parts) {
       objNormals.push(parts.map(parseFloat));
@@ -103,31 +54,12 @@ function parseOBJ(text) {
       objTexcoords.push(parts.map(parseFloat));
     },
     f(parts) {
-      setGeometry();
       const numTriangles = parts.length - 2;
       for (let tri = 0; tri < numTriangles; ++tri) {
         addVertex(parts[0]);
         addVertex(parts[tri + 1]);
         addVertex(parts[tri + 2]);
       }
-    },
-    s: noop,    // smoothing group
-    mtllib(parts, unparsedArgs) {
-      // the spec says there can be multiple filenames here
-      // but many exist with spaces in a single filename
-      materialLibs.push(unparsedArgs);
-    },
-    usemtl(parts, unparsedArgs) {
-      material = unparsedArgs;
-      newGeometry();
-    },
-    g(parts) {
-      groups = parts;
-      newGeometry();
-    },
-    o(parts, unparsedArgs) {
-      object = unparsedArgs;
-      newGeometry();
     },
   };
 
@@ -152,14 +84,9 @@ function parseOBJ(text) {
     handler(parts, unparsedArgs);
   }
 
-  // remove any arrays that have no entries.
-  for (const geometry of geometries) {
-    geometry.data = Object.fromEntries(
-      Object.entries(geometry.data).filter(([, array]) => array.length > 0));
-  }
-
   return {
-    geometries,
-    materialLibs,
+    position: webglVertexData[0],
+    texcoord: webglVertexData[1],
+    normal: webglVertexData[2],
   };
 }

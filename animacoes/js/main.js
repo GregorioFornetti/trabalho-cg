@@ -84,10 +84,10 @@ function loadScene(model) { // list of objects
 	
 
 	const cameraTarget = [0, 0, 0];
-	const radius = m4.length(range) * 1.2;
+	const radius = 20;
 	const cameraPosition = m4.addVectors(cameraTarget, [
-		5,
 		0,
+		5,
 		radius,
 	]);
 
@@ -96,7 +96,7 @@ function loadScene(model) { // list of objects
 
 	const fieldOfViewRadians = degToRad(60);
 	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-	const projection = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+	const projection = m4.perspective(fieldOfViewRadians, aspect, 0.2, 30);
 
 	const up = [0, 1, 0];
 	// Compute the camera's matrix using look at.
@@ -110,11 +110,14 @@ function loadScene(model) { // list of objects
 	var viewLocation = gl.getUniformLocation(program, "u_view");
 	var worldObjLocation = gl.getUniformLocation(program, "u_world");
 	var lightLocation = gl.getUniformLocation(program, "u_lightDirection");
+	var diffuse = gl.getUniformLocation(program, "u_diffuse")
 	
 	return {
 
 		// Objects
 		obj_offset: u_obj, objs: [vec3(0,0,0)], worldObjLocation,
+
+		u_diffuse: diffuse,
 
 		// Light
 		u_lightDirection: light, lightLocation,
@@ -127,7 +130,7 @@ function loadScene(model) { // list of objects
 }
 
 function loadModel() {
-	var geometry = parseOBJ(loadFileAJAX('models/cube.obj')).geometries[0].data;
+	var geometry = parseOBJ(loadFileAJAX('models/cube.obj'));
 
 	var vao = gl.createVertexArray();
 	gl.bindVertexArray(vao);
@@ -141,8 +144,9 @@ function loadModel() {
 
 	var colorLocation = gl.getAttribLocation(program, "a_color");
 	var colorBuffer = gl.createBuffer();
+
 	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, flatten(geometry.color), gl.STATIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, flatten(geometry.texcoord), gl.STATIC_DRAW);
 	gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(colorLocation);
 
@@ -165,6 +169,7 @@ function render(angle) {
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
 	gl.enable(gl.DEPTH_TEST);
+	gl.enable(gl.CULL_FACE);
 
 	gl.useProgram(program);
 
@@ -178,6 +183,11 @@ function render(angle) {
 		let u_world = movement_functions[current_movement](angle, scene.obj_offset)
 		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj[0], CUBE_SIZE * obj[1], CUBE_SIZE * obj[2]), u_world)
 
+		if (i == 0) {
+			gl.uniform4fv(scene.u_diffuse, [0, 1, 0, 1])
+		} else {
+			gl.uniform4fv(scene.u_diffuse, [0, 0.9, 0, 1])
+		}
 		gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
 		gl.bindVertexArray(model.vao);
 		gl.drawArrays(gl.TRIANGLES, 0, model.geometry.position.length / 3)
@@ -254,6 +264,12 @@ function move_left(angle, obj) {
 	let obj_rotacionado = m4.multiply(m4.zRotation(degToRad(angle)), obj_tranlandado)
 
 	return m4.multiply(m4.translation(-1, -1, -1), obj_rotacionado)
+}
+
+function add_snake_body() {
+	var last_body = scene.objs[scene.objs.length - 1]
+	scene.objs.push(vec3(last_body[0] - 1, last_body[1], last_body[2]))
+	movement_list.push(RIGHT)
 }
 
 function getExtents(positions) {
