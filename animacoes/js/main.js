@@ -96,7 +96,7 @@ function loadScene(model) { // list of objects
 
 	const fieldOfViewRadians = degToRad(60);
 	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-	const projection = m4.perspective(fieldOfViewRadians, aspect, 0.2, 30);
+	const projection = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
 
 	const up = [0, 1, 0];
 	// Compute the camera's matrix using look at.
