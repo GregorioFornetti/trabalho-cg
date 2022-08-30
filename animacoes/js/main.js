@@ -2,25 +2,47 @@
 
 const GRID_SIZE = 5  // Largura e altura da grid será GRID_SIZE * 2 + 1, para sempre ficar centralizado a primeira parte da cobra
 const CUBE_SIZE = 2
+const INITIAL_SPEED = 90
+
 const FOWARD = 0
 const BACK = 1
 const LEFT = 2
 const RIGHT = 3
+
+const HEAD_COLOR = [0, 1, 0, 1]
+const BODY_COLOR = [0, 0.9, 0, 1]
+const APPLE_COLOR = [1, 0, 0, 1]
 
 var gl;
 var program;
 var model;
 var scene;
 
-var current_movement
+var score = 0
+var currentMovement = RIGHT
+var gameStoped = true
 
 var movement_functions = []
 var animation_start_time
-var animation_speed = 90  // Graus por segundo
+var animation_speed = INITIAL_SPEED  // Graus por segundo
 var movement_list = []
 var move_cubes_buttons
 
 var teleport_animation_movement_list = []  // Lista de movimentos dos cubos que sairam da grid
+
+document.addEventListener ('keypress', (event) => {
+	const keyName = event.key;
+
+	if (keyName === 'w') {
+		move_function(FOWARD)
+	} else if (keyName === 'a') {
+		move_function(LEFT)
+	} else if (keyName === 's') {
+		move_function(BACK)
+	} else if (keyName === 'd') {
+		move_function(RIGHT)
+	}
+})
 
 document.addEventListener('DOMContentLoaded', () => {
 	let foward_btn = document.getElementById('move_foward')
@@ -34,30 +56,28 @@ document.addEventListener('DOMContentLoaded', () => {
 	back_btn.addEventListener('click', () => move_function(BACK))
 	left_btn.addEventListener('click', () => move_function(LEFT))
 	right_btn.addEventListener('click', () => move_function(RIGHT))
+
+	let start_game_btn = document.getElementById('start_game')
+	start_game_btn.addEventListener('click', () => restartGame())
 })
 
+function setScore(newScore) {
+	let score_element = document.getElementById('score')
+	score_element.innerText = `Pontuação: ${newScore}`
+	score = newScore
+}
+
 function move_function(movement_type) {
-	movement_list.unshift(movement_type)
-	disable_cube_movement_btns()
-	update_teleport_objs()
-	requestAnimationFrame(render_movement)
-}
-
-function enable_cube_movement_btns() {
-	move_cubes_buttons.forEach((btn) => btn.disabled = false)
-}
-
-function disable_cube_movement_btns() {
-	move_cubes_buttons.forEach((btn) => btn.disabled = true)
+	currentMovement = movement_type
 }
 
 
 window.onload = function init() {
 
-	movement_functions[FOWARD] = move_foward
-	movement_functions[BACK] = move_back
-	movement_functions[LEFT] = move_left
-	movement_functions[RIGHT] = move_right
+	movement_functions[FOWARD] = moveFoward
+	movement_functions[BACK] = moveBack
+	movement_functions[LEFT] = moveLeft
+	movement_functions[RIGHT] = moveRight
 
 	// Get A WebGL context
 	var canvas = document.getElementById("gl-canvas");
@@ -72,10 +92,16 @@ window.onload = function init() {
 	model = loadModel(); 
 
 	scene = loadScene(model);
+}
 
-	movement_list.push(0)  // para mostrar algo na tela inicialmente, precisa ter algo no vetor
-	render(0)
-	movement_list.pop()
+function restartGame() {
+	scene.objs = [vec3(0, 0, 0)]
+	movement_list = [currentMovement]
+	set_new_apple_position()
+	gameStoped = false
+	animation_speed = INITIAL_SPEED
+	setScore(0)
+	requestAnimationFrame(render_movement)
 }
 
 function loadScene(model) { // list of objects
@@ -124,6 +150,7 @@ function loadScene(model) { // list of objects
 		obj_offset: u_obj, 
 		objs: [vec3(0,0,0)],  // objs é uma lista de posições de cada parte da cobra
 		teleportObjs: [],  // é uma lista de dicionarios, sendo: {head: (0 ou 1 dependendo se é a cabeça ou não), position: posição da parte da cobra para teleporte}
+		apple: null,
 		worldObjLocation,
 
 		u_diffuse: diffuse,
@@ -187,17 +214,23 @@ function render(angle) {
 	gl.uniformMatrix4fv(scene.projectionLocation, false, scene.u_projection);
 	gl.bindVertexArray(model.vao);
 
+	// Renderiza maçã
+	let u_world = m4.translation(CUBE_SIZE * scene.apple[0], CUBE_SIZE * scene.apple[1], CUBE_SIZE * scene.apple[2])
+	gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world)
+	gl.uniform4fv(scene.u_diffuse, APPLE_COLOR)
+	gl.drawArrays(gl.TRIANGLES, 0, model.geometry.position.length / 3)
+
 	// Renderiza as partes da cobra
 	for (let i = 0; i < scene.objs.length; i++) {
 		let obj = scene.objs[i]
-		let obj_movement = movement_list[i]
-		let u_world = movement_functions[obj_movement](angle, scene.obj_offset) // Rotação do objeto
+		let objMovement = movement_list[i]
+		let u_world = movement_functions[objMovement](angle, scene.obj_offset) // Rotação do objeto
 		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj[0], CUBE_SIZE * obj[1], CUBE_SIZE * obj[2]), u_world)  // Translação do objeto
 
 		if (i == 0) {
-			gl.uniform4fv(scene.u_diffuse, [0, 1, 0, 1]) // Cor da cabeca da cobra
+			gl.uniform4fv(scene.u_diffuse, HEAD_COLOR) // Cor da cabeca da cobra
 		} else {
-			gl.uniform4fv(scene.u_diffuse, [0, 0.9, 0, 1]) // Cor do corpo da cobra
+			gl.uniform4fv(scene.u_diffuse, BODY_COLOR) // Cor do corpo da cobra
 		}
 		gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
 		gl.drawArrays(gl.TRIANGLES, 0, model.geometry.position.length / 3)
@@ -206,21 +239,64 @@ function render(angle) {
 	// Renderiza os objetos de teleporte
 	for (let i = 0; i < scene.teleportObjs.length; i++) {
 		let obj = scene.teleportObjs[i]
-		let obj_movement = teleport_animation_movement_list[i]
-		let u_world = movement_functions[obj_movement](angle, scene.obj_offset)  // Rotação do objeto
+		let objMovement = teleport_animation_movement_list[i]
+		let u_world = movement_functions[objMovement](angle, scene.obj_offset)  // Rotação do objeto
 		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj.position[0], CUBE_SIZE * obj.position[1], CUBE_SIZE * obj.position[2]), u_world)  // Translação do objeto
 
 		if (obj.head) {
-			gl.uniform4fv(scene.u_diffuse, [0, 1, 0, 1]) // Cor da cabeca da cobra
+			gl.uniform4fv(scene.u_diffuse, HEAD_COLOR) // Cor da cabeca da cobra
 		} else {
-			gl.uniform4fv(scene.u_diffuse, [0, 0.9, 0, 1]) // Cor do corpo da cobra
+			gl.uniform4fv(scene.u_diffuse, BODY_COLOR) // Cor do corpo da cobra
 		}
 		gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
 		gl.drawArrays(gl.TRIANGLES, 0, model.geometry.position.length / 3)
 	}
 }
 
+function moveFoward(angle, obj) {
+	let objTransladado = m4.translation(-1, 1, -1, obj)  // Posiciona o objeto na posicao correta de ancora
+
+	let objRotacionado = m4.multiply(m4.xRotation(degToRad(angle)), objTransladado)  // Rotaciona o objeto
+
+	return m4.multiply(m4.translation(1, -1, 1), objRotacionado)  // Volta o objeto para a posic original
+}
+
+function moveBack(angle, obj) {
+	let objTransladado = m4.translation(1, 1, 1, obj)
+
+	let objRotacionado = m4.multiply(m4.xRotation(degToRad(-angle)), objTransladado)
+
+	return m4.multiply(m4.translation(-1, -1, -1), objRotacionado)
+}
+
+function moveRight(angle, obj) {
+	let objTransladado = m4.translation(-1, 1, -1, obj)
+
+	let objRotacionado = m4.multiply(m4.zRotation(degToRad(-angle)), objTransladado)
+
+	return m4.multiply(m4.translation(1, -1, 1), objRotacionado)
+}
+
+function moveLeft(angle, obj) {
+	let objTransladado = m4.translation(1, 1, 1, obj)
+
+	let objRotacionado = m4.multiply(m4.zRotation(degToRad(angle)), objTransladado)
+
+	return m4.multiply(m4.translation(-1, -1, -1), objRotacionado)
+}
+
+function addSnakeBody() {
+	var lastBody = scene.objs[scene.objs.length - 1]
+	scene.objs.push(vec3(lastBody[0] - 1, lastBody[1], lastBody[2]))
+	movement_list.push(RIGHT)
+}
+
+
 function render_movement(time) {
+	if (gameStoped) {
+		return
+	}
+
 	time = time * 0.001;  // convert to seconds
 
 	if (!animation_start_time) {
@@ -233,21 +309,30 @@ function render_movement(time) {
 		start_next_movement()
 	} else {
 		render(current_angle)
-		requestAnimationFrame(render_movement);
 	}
-	// requestAnimationFrame(render_movement);
+	requestAnimationFrame(render_movement);
 }
 
 function start_next_movement() {
-	update_objs_positions()
-
-	render(0)
-	enable_cube_movement_btns()
-	movement_list.pop()
 	animation_start_time = null
+
+	updateObjsPosition()
+	if (isGameover()) {
+		gameStoped = true
+		return
+	}
+	update_movement_list()
+	update_teleport_objs()
+
+	if (is_apple_eaten()) {
+		addSnakeBody()
+		set_new_apple_position()
+		setScore(score + 1)
+		animation_speed += 5
+	}
 }
 
-function update_objs_positions() {
+function updateObjsPosition() {
 	// Atualiza as posições de cada parte da cobra dependendo do movimento que essa parte realizou
 	// Essa atualização é depois do movimento ser realizado (animação de rotação do cubo), para que os
 	// objetos fiquem nas suas novas reais posições
@@ -255,23 +340,23 @@ function update_objs_positions() {
 
 	for (let i = 0; i < scene.objs.length; i++) {
 		let obj = scene.objs[i]
-		let obj_movement = movement_list[i]
+		let objMovement = movement_list[i]
 
-		if (obj_movement == FOWARD) {
+		if (objMovement == FOWARD) {
 			if (obj[2] >= GRID_SIZE) {  
 				obj[2] = -GRID_SIZE
 			}
 			else {
 				obj[2] += 1
 			}
-		} else if (obj_movement == BACK) {
+		} else if (objMovement == BACK) {
 			if (obj[2] <= -GRID_SIZE) {
 				obj[2] = GRID_SIZE
 			}
 			else {
 				obj[2] -= 1
 			}
-		} else if (obj_movement == LEFT) {
+		} else if (objMovement == LEFT) {
 			if (obj[0] <= -GRID_SIZE) {
 				obj[0] = GRID_SIZE
 			}
@@ -289,6 +374,11 @@ function update_objs_positions() {
 	}
 }
 
+function update_movement_list() {
+	movement_list.pop()
+	movement_list.unshift(currentMovement)
+}
+
 function update_teleport_objs() {
 	// Adiciona objetos no lado inverso da grid para dar um efeito de teleporte (caso o objeto atual irá sair da grid)
 	// OBS: essa função deve ser chamada após atualizar as posições dos objetos e suas listas de movimentos já estiverem atualizadas,
@@ -301,65 +391,67 @@ function update_teleport_objs() {
 	// Adiciona os novos objetos de teleporte, para o novo movimento
 	for (let i = 0; i < scene.objs.length; i++) {
 		let obj = scene.objs[i]
-		let obj_movement = movement_list[i]
+		let objMovement = movement_list[i]
 
-		if (obj_movement == FOWARD && obj[2] >= GRID_SIZE) {  // deve ter um teleporte para a parte de traz
+		if (objMovement == FOWARD && obj[2] >= GRID_SIZE) {  // deve ter um teleporte para a parte de trás
 			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], -GRID_SIZE - 1)})
 			teleport_animation_movement_list.push(FOWARD)
 		}
-		else if (obj_movement == BACK && obj[2] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da frente
+		else if (objMovement == BACK && obj[2] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da frente
 			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], GRID_SIZE + 1)})
 			teleport_animation_movement_list.push(BACK)
 		}
-		else if (obj_movement == LEFT && obj[0] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da direita
+		else if (objMovement == LEFT && obj[0] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da direita
 			scene.teleportObjs.push({head: i == 0, position: vec3(GRID_SIZE + 1, obj[1], obj[2])})
 			teleport_animation_movement_list.push(LEFT)
 		}
-		else if (obj_movement == RIGHT && obj[0] >= GRID_SIZE) {  // Deve ter um telepor para a parte da esquerda
+		else if (objMovement == RIGHT && obj[0] >= GRID_SIZE) {  // Deve ter um telepor para a parte da esquerda
 			scene.teleportObjs.push({head: i == 0, position: vec3(-GRID_SIZE - 1, obj[1], obj[2])})
 			teleport_animation_movement_list.push(RIGHT)
 		}
 	}
 }
 
+function set_new_apple_position() {
+	// Retorna uma posição aleatória e disponível(sem nenhuma parte da cobra)
 
-function move_foward(angle, obj) {
-	let obj_tranlandado = m4.translation(-1, 1, -1, obj)  // Posiciona o objeto na posicao correta de ancora
+	// Coletando todas as posições disponíveis
+	let possible_positions = []
+	for (let i = -CUBE_SIZE; i <= CUBE_SIZE; i++) {
+		for (let j = -CUBE_SIZE; j <= CUBE_SIZE; j++) {
+			if (!scene.objs.some((obj) => (obj[0] == i && obj[2] == j))) {
+				possible_positions.push(vec3(i, 0, j))
+			}
+		}
+	}
 
-	let obj_rotacionado = m4.multiply(m4.xRotation(degToRad(angle)), obj_tranlandado)  // Rotaciona o objeto
-
-	return m4.multiply(m4.translation(1, -1, 1), obj_rotacionado)  // Volta o objeto para a posic original
+	scene.apple = possible_positions[Math.floor(Math.random() * possible_positions.length)]
 }
 
-function move_back(angle, obj) {
-	let obj_tranlandado = m4.translation(1, 1, 1, obj)
-
-	let obj_rotacionado = m4.multiply(m4.xRotation(degToRad(-angle)), obj_tranlandado)
-
-	return m4.multiply(m4.translation(-1, -1, -1), obj_rotacionado)
+function is_same_position(pos1, pos2) {
+	return pos1[0] === pos2[0] && pos1[1] === pos2[1] && pos1[2] === pos2[2]
 }
 
-function move_right(angle, obj) {
-	let obj_tranlandado = m4.translation(-1, 1, -1, obj)
+function is_apple_eaten() {
+	// A maçã é considerada comida, se a cabeça da cobra estiver na mesma posição que a maçã
+	let apple = scene.apple
+	let snake_head = scene.objs[0]
 
-	let obj_rotacionado = m4.multiply(m4.zRotation(degToRad(-angle)), obj_tranlandado)
-
-	return m4.multiply(m4.translation(1, -1, 1), obj_rotacionado)
+	return is_same_position(apple, snake_head)
 }
 
-function move_left(angle, obj) {
-	let obj_tranlandado = m4.translation(1, 1, 1, obj)
+function isGameover() {
+	// O jogo acaba quando a cabeça da cobra colide com outra parte do corpo da cobra
+	let snake_head = scene.objs[0]
 
-	let obj_rotacionado = m4.multiply(m4.zRotation(degToRad(angle)), obj_tranlandado)
-
-	return m4.multiply(m4.translation(-1, -1, -1), obj_rotacionado)
+	for (let i = 1; i < scene.objs.length; i++) {
+		if (is_same_position(snake_head, scene.objs[i])) {
+			return true
+		}
+	}
+	return false
 }
 
-function add_snake_body() {
-	var last_body = scene.objs[scene.objs.length - 1]
-	scene.objs.push(vec3(last_body[0] - 1, last_body[1], last_body[2]))
-	movement_list.push(RIGHT)
-}
 
 function getExtents(positions) {
 	const min = positions.slice(0, 3);

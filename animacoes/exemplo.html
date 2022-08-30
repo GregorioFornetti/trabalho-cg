@@ -3,7 +3,7 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-	<title>Example</title>
+	<title>Jogo da cobra</title>
 	<script type="text/javascript" src="js/MVnew.js"></script>
 	<script type="text/javascript" src="js/webgl-utils.js"></script>
 	<script type="text/javascript" src="js/m4.js"></script>
@@ -14,6 +14,8 @@
 </head>
 
 <body style="background-color: rgb(200, 200, 200)">
+	<h1 style="text-align: center;">Jogo da cobra</h1>
+
 	<div style="margin: auto; width: fit-content;">
 		<canvas id="gl-canvas" width="1024" height="512">
 			Oops ... your browser doesn't support the HTML5 canvas
@@ -22,11 +24,14 @@
 	</div>
 
 	<div style="margin: auto; width: fit-content;">
-		<button id="move_foward">Foward</button>
-		<button id="move_back">Back</button>
-		<button id="move_left">Left</button>
-		<button id="move_right">Right</button>
+		<button id="start_game">Começar</button>
+		<button id="move_foward">Cima</button>
+		<button id="move_back">Baixo</button>
+		<button id="move_left">Esquerda</button>
+		<button id="move_right">Direita</button>
 	</div>
+
+	<p id='score' style="text-align: center;"></p>
 </body>
 
 </html>
