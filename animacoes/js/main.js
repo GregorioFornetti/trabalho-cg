@@ -1,5 +1,6 @@
 "use strict";
 
+const GRID_SIZE = 5  // Largura e altura da grid será GRID_SIZE * 2 + 1, para sempre ficar centralizado a primeira parte da cobra
 const CUBE_SIZE = 2
 const FOWARD = 0
 const BACK = 1
@@ -11,29 +12,34 @@ var program;
 var model;
 var scene;
 
+var current_movement
+
 var movement_functions = []
 var animation_start_time
 var animation_speed = 90  // Graus por segundo
 var movement_list = []
 var move_cubes_buttons
 
-document.addEventListener(`DOMContentLoaded`, () => {
-	let foward_btn = document.getElementById(`move_foward`)
-	let back_btn = document.getElementById(`move_back`)
-	let left_btn = document.getElementById(`move_left`)
-	let right_btn = document.getElementById(`move_right`)
+var teleport_animation_movement_list = []  // Lista de movimentos dos cubos que sairam da grid
+
+document.addEventListener('DOMContentLoaded', () => {
+	let foward_btn = document.getElementById('move_foward')
+	let back_btn = document.getElementById('move_back')
+	let left_btn = document.getElementById('move_left')
+	let right_btn = document.getElementById('move_right')
 
 	move_cubes_buttons = [foward_btn, back_btn, left_btn, right_btn]
 
-	foward_btn.addEventListener(`click`, () => move_function(FOWARD))
-	back_btn.addEventListener(`click`, () => move_function(BACK))
-	left_btn.addEventListener(`click`, () => move_function(LEFT))
-	right_btn.addEventListener(`click`, () => move_function(RIGHT))
+	foward_btn.addEventListener('click', () => move_function(FOWARD))
+	back_btn.addEventListener('click', () => move_function(BACK))
+	left_btn.addEventListener('click', () => move_function(LEFT))
+	right_btn.addEventListener('click', () => move_function(RIGHT))
 })
 
 function move_function(movement_type) {
 	movement_list.unshift(movement_type)
 	disable_cube_movement_btns()
+	update_teleport_objs()
 	requestAnimationFrame(render_movement)
 }
 
@@ -63,7 +69,7 @@ window.onload = function init() {
 
 	program = initShaders(gl, 'shaders/vertex.glsl', 'shaders/fragment.glsl');
 
-	model = loadModel(); // list of models?
+	model = loadModel(); 
 
 	scene = loadScene(model);
 
@@ -115,7 +121,10 @@ function loadScene(model) { // list of objects
 	return {
 
 		// Objects
-		obj_offset: u_obj, objs: [vec3(0,0,0)], worldObjLocation,
+		obj_offset: u_obj, 
+		objs: [vec3(0,0,0)],  // objs é uma lista de posições de cada parte da cobra
+		teleportObjs: [],  // é uma lista de dicionarios, sendo: {head: (0 ou 1 dependendo se é a cabeça ou não), position: posição da parte da cobra para teleporte}
+		worldObjLocation,
 
 		u_diffuse: diffuse,
 
@@ -176,12 +185,14 @@ function render(angle) {
 	gl.uniform3fv(scene.lightLocation, scene.u_lightDirection);
 	gl.uniformMatrix4fv(scene.viewLocation, false, scene.u_view);
 	gl.uniformMatrix4fv(scene.projectionLocation, false, scene.u_projection);
+	gl.bindVertexArray(model.vao);
 
+	// Renderiza as partes da cobra
 	for (let i = 0; i < scene.objs.length; i++) {
 		let obj = scene.objs[i]
-		let current_movement = movement_list[i]
-		let u_world = movement_functions[current_movement](angle, scene.obj_offset)
-		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj[0], CUBE_SIZE * obj[1], CUBE_SIZE * obj[2]), u_world)
+		let obj_movement = movement_list[i]
+		let u_world = movement_functions[obj_movement](angle, scene.obj_offset) // Rotação do objeto
+		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj[0], CUBE_SIZE * obj[1], CUBE_SIZE * obj[2]), u_world)  // Translação do objeto
 
 		if (i == 0) {
 			gl.uniform4fv(scene.u_diffuse, [0, 1, 0, 1]) // Cor da cabeca da cobra
@@ -189,7 +200,22 @@ function render(angle) {
 			gl.uniform4fv(scene.u_diffuse, [0, 0.9, 0, 1]) // Cor do corpo da cobra
 		}
 		gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
-		gl.bindVertexArray(model.vao);
+		gl.drawArrays(gl.TRIANGLES, 0, model.geometry.position.length / 3)
+	}
+
+	// Renderiza os objetos de teleporte
+	for (let i = 0; i < scene.teleportObjs.length; i++) {
+		let obj = scene.teleportObjs[i]
+		let obj_movement = teleport_animation_movement_list[i]
+		let u_world = movement_functions[obj_movement](angle, scene.obj_offset)  // Rotação do objeto
+		u_world = m4.multiply(m4.translation(CUBE_SIZE * obj.position[0], CUBE_SIZE * obj.position[1], CUBE_SIZE * obj.position[2]), u_world)  // Translação do objeto
+
+		if (obj.head) {
+			gl.uniform4fv(scene.u_diffuse, [0, 1, 0, 1]) // Cor da cabeca da cobra
+		} else {
+			gl.uniform4fv(scene.u_diffuse, [0, 0.9, 0, 1]) // Cor do corpo da cobra
+		}
+		gl.uniformMatrix4fv(scene.worldObjLocation, false, u_world);
 		gl.drawArrays(gl.TRIANGLES, 0, model.geometry.position.length / 3)
 	}
 }
@@ -203,36 +229,99 @@ function render_movement(time) {
 
 	let current_angle = Math.min(90, (time - animation_start_time) * animation_speed)
 
-	render(current_angle)
-
 	if (current_angle === 90) {
-		// Acabou o movimento
+		start_next_movement()
+	} else {
+		render(current_angle)
+		requestAnimationFrame(render_movement);
+	}
+	// requestAnimationFrame(render_movement);
+}
 
-		// Atualiza as posicoes de cada objeto
-		for (let i = 0; i < scene.objs.length; i++) {
-			let obj = scene.objs[i]
-			let current_movement = movement_list[i]
+function start_next_movement() {
+	update_objs_positions()
 
-			if (current_movement == FOWARD) {
+	render(0)
+	enable_cube_movement_btns()
+	movement_list.pop()
+	animation_start_time = null
+}
+
+function update_objs_positions() {
+	// Atualiza as posições de cada parte da cobra dependendo do movimento que essa parte realizou
+	// Essa atualização é depois do movimento ser realizado (animação de rotação do cubo), para que os
+	// objetos fiquem nas suas novas reais posições
+	// Lembrando que se objeto sair da grid, ele "teleportará" para o lado inverso
+
+	for (let i = 0; i < scene.objs.length; i++) {
+		let obj = scene.objs[i]
+		let obj_movement = movement_list[i]
+
+		if (obj_movement == FOWARD) {
+			if (obj[2] >= GRID_SIZE) {  
+				obj[2] = -GRID_SIZE
+			}
+			else {
 				obj[2] += 1
-			} else if (current_movement == BACK) {
+			}
+		} else if (obj_movement == BACK) {
+			if (obj[2] <= -GRID_SIZE) {
+				obj[2] = GRID_SIZE
+			}
+			else {
 				obj[2] -= 1
-			} else if (current_movement == LEFT) {
+			}
+		} else if (obj_movement == LEFT) {
+			if (obj[0] <= -GRID_SIZE) {
+				obj[0] = GRID_SIZE
+			}
+			else {
 				obj[0] -= 1
-			} else {
+			}
+		} else {
+			if (obj[0] >= GRID_SIZE) {
+				obj[0] = -GRID_SIZE
+			}
+			else {
 				obj[0] += 1
 			}
 		}
-
-		render(0)
-		enable_cube_movement_btns()
-		movement_list.pop()
-		animation_start_time = null
-	}
-	else {
-		requestAnimationFrame(render_movement);
 	}
 }
+
+function update_teleport_objs() {
+	// Adiciona objetos no lado inverso da grid para dar um efeito de teleporte (caso o objeto atual irá sair da grid)
+	// OBS: essa função deve ser chamada após atualizar as posições dos objetos e suas listas de movimentos já estiverem atualizadas,
+	// pois essa função "irá prever o futuro" para colocar os objetos de teleporte nas posições corretas
+
+	// Limpa as informações antigas dos objetos de teleporte
+	scene.teleportObjs = []
+	teleport_animation_movement_list = []
+
+	// Adiciona os novos objetos de teleporte, para o novo movimento
+	for (let i = 0; i < scene.objs.length; i++) {
+		let obj = scene.objs[i]
+		let obj_movement = movement_list[i]
+
+		if (obj_movement == FOWARD && obj[2] >= GRID_SIZE) {  // deve ter um teleporte para a parte de traz
+			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], -GRID_SIZE - 1)})
+			teleport_animation_movement_list.push(FOWARD)
+		}
+		else if (obj_movement == BACK && obj[2] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da frente
+			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], GRID_SIZE + 1)})
+			teleport_animation_movement_list.push(BACK)
+		}
+		else if (obj_movement == LEFT && obj[0] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da direita
+			scene.teleportObjs.push({head: i == 0, position: vec3(GRID_SIZE + 1, obj[1], obj[2])})
+			teleport_animation_movement_list.push(LEFT)
+		}
+		else if (obj_movement == RIGHT && obj[0] >= GRID_SIZE) {  // Deve ter um telepor para a parte da esquerda
+			scene.teleportObjs.push({head: i == 0, position: vec3(-GRID_SIZE - 1, obj[1], obj[2])})
+			teleport_animation_movement_list.push(RIGHT)
+		}
+	}
+}
+
 
 function move_foward(angle, obj) {
 	let obj_tranlandado = m4.translation(-1, 1, -1, obj)  // Posiciona o objeto na posicao correta de ancora
