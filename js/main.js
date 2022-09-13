@@ -119,8 +119,8 @@ function loadScene(model) { // list of objects
 	const radius = 20;
 	const cameraPosition = m4.addVectors(cameraTarget, [
 		0,
-		5,
-		radius,
+		20,
+		3,
 	]);
 
 	const zNear = radius / 100;
