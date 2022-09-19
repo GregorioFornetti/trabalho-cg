@@ -2,7 +2,7 @@
 
 const GRID_SIZE = 5  // Largura e altura da grid será GRID_SIZE * 2 + 1, para sempre ficar centralizado a primeira parte da cobra
 const CUBE_SIZE = 2
-const INITIAL_SPEED = 90
+const INITIAL_SPEED = 100
 
 const FOWARD = 0
 const BACK = 1
@@ -12,6 +12,7 @@ const RIGHT = 3
 const HEAD_COLOR = [0, 1, 0, 1]
 const BODY_COLOR = [0, 0.9, 0, 1]
 const APPLE_COLOR = [1, 0, 0, 1]
+
 
 var gl;
 var program;
@@ -27,6 +28,8 @@ var animation_start_time
 var animation_speed = INITIAL_SPEED  // Graus por segundo
 var movement_list = []
 var move_cubes_buttons
+var level = 1 // nivel de dificuldade
+var ctn_level = 5 // aumento de nivel 
 
 var teleport_animation_movement_list = []  // Lista de movimentos dos cubos que sairam da grid
 
@@ -34,13 +37,21 @@ document.addEventListener ('keypress', (event) => {
 	const keyName = event.key;
 
 	if (keyName === 'w') {
-		move_function(FOWARD)
+		if(movement_list[0] != BACK){
+			move_function(FOWARD)
+		}
 	} else if (keyName === 'a') {
-		move_function(LEFT)
+		if(movement_list[0] != RIGHT){
+			move_function(LEFT)
+		}
 	} else if (keyName === 's') {
-		move_function(BACK)
+		if(movement_list[0] != FOWARD){
+			move_function(BACK)
+		}
 	} else if (keyName === 'd') {
-		move_function(RIGHT)
+		if(movement_list[0] != LEFT){
+			move_function(RIGHT)
+		}
 	}
 })
 
@@ -65,6 +76,13 @@ function setScore(newScore) {
 	let score_element = document.getElementById('score')
 	score_element.innerText = `Pontuação: ${newScore}`
 	score = newScore
+}
+
+function setLevel(newLevel) {
+	let level_element = document.getElementById('level')
+	level_element.innerText = `Nível: ${newLevel}`
+	level = newLevel
+	
 }
 
 function move_function(movement_type) {
@@ -101,6 +119,8 @@ function restartGame() {
 	gameStoped = false
 	animation_speed = INITIAL_SPEED
 	setScore(0)
+	setLevel(1)
+	ctn_level = 5
 	requestAnimationFrame(render_movement)
 }
 
@@ -287,8 +307,22 @@ function moveLeft(angle, obj) {
 
 function addSnakeBody() {
 	var lastBody = scene.objs[scene.objs.length - 1]
-	scene.objs.push(vec3(lastBody[0] - 1, lastBody[1], lastBody[2]))
-	movement_list.push(RIGHT)
+	var lastBodyMovement = movement_list[scene.objs.length - 1] // captura o ultimo movimento da cauda
+
+	if(lastBodyMovement == FOWARD){
+		scene.objs.push(vec3(lastBody[0], lastBody[1], lastBody[2] - 1))
+		
+	}
+	if(lastBodyMovement == RIGHT){
+		scene.objs.push(vec3(lastBody[0] - 1, lastBody[1], lastBody[2]))
+	}
+	if(lastBodyMovement == LEFT){
+		scene.objs.push(vec3(lastBody[0] + 1, lastBody[1], lastBody[2]))
+	}
+	if(lastBodyMovement == BACK){
+		scene.objs.push(vec3(lastBody[0], lastBody[1], lastBody[2] + 1))
+	}
+	movement_list.push(lastBodyMovement)
 }
 
 
@@ -312,6 +346,14 @@ function render_movement(time) {
 	}
 	requestAnimationFrame(render_movement);
 }
+function update_level(){
+	var sc = score % ctn_level
+	if (sc === 0){
+		animation_speed  = animation_speed * 1.2
+		setLevel(level + 1)
+		ctn_level += 5
+	}
+}
 
 function start_next_movement() {
 	animation_start_time = null
@@ -328,7 +370,8 @@ function start_next_movement() {
 		addSnakeBody()
 		set_new_apple_position()
 		setScore(score + 1)
-		animation_speed += 5
+		update_level()
+		
 	}
 }
 
