@@ -101,6 +101,7 @@ function restartGame() {
 	gameStoped = false
 	animation_speed = INITIAL_SPEED
 	setScore(0)
+	hideGameOver()
 	requestAnimationFrame(render_movement)
 }
 
@@ -318,6 +319,7 @@ function start_next_movement() {
 
 	updateObjsPosition()
 	if (isGameover()) {
+		showGameOver()
 		gameStoped = true
 		return
 	}
@@ -486,4 +488,14 @@ function resizeCanvasToDisplaySize(canvas) {
 
 function degToRad(deg) {
 	return deg * Math.PI / 180;
+}
+
+function hideGameOver() {
+	const gameover = document.querySelector('.gameover');
+	gameover.style.cssText = 'visibility: hidden;'
+}
+
+function showGameOver() {
+	const gameover = document.querySelector('.gameover');
+	gameover.style.cssText = 'visibility: visible;'
 }
