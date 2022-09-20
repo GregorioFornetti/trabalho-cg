@@ -397,11 +397,11 @@ function update_teleport_objs() {
 
 		if (objMovement == FOWARD && obj[2] >= GRID_SIZE) {  // deve ter um teleporte para a parte de trás
 			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], GRID_SIZE + 1)})
-			teleport_animation_movement_list.push(BACK)
+			teleport_animation_movement_list.push(FOWARD)
 		}
 		else if (objMovement == BACK && obj[2] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da frente
 			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], -GRID_SIZE - 1)})
-			teleport_animation_movement_list.push(FOWARD)
+			teleport_animation_movement_list.push(BACK)
 		}
 		else if (objMovement == LEFT && obj[0] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da direita
 			scene.teleportObjs.push({head: i == 0, position: vec3(GRID_SIZE + 1, obj[1], obj[2])})
