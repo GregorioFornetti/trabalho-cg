@@ -4,8 +4,8 @@ const GRID_SIZE = 5  // Largura e altura da grid será GRID_SIZE * 2 + 1, para s
 const CUBE_SIZE = 2
 const INITIAL_SPEED = 100
 
-const FOWARD = 0
-const BACK = 1
+const BACK = 0
+const FOWARD = 1
 const LEFT = 2
 const RIGHT = 3
 
@@ -121,6 +121,7 @@ function restartGame() {
 	setScore(0)
 	setLevel(1)
 	ctn_level = 5
+	hideGameOver()
 	requestAnimationFrame(render_movement)
 }
 
@@ -274,19 +275,19 @@ function render(angle) {
 }
 
 function moveFoward(angle, obj) {
-	let objTransladado = m4.translation(-1, 1, -1, obj)  // Posiciona o objeto na posicao correta de ancora
-
-	let objRotacionado = m4.multiply(m4.xRotation(degToRad(angle)), objTransladado)  // Rotaciona o objeto
-
-	return m4.multiply(m4.translation(1, -1, 1), objRotacionado)  // Volta o objeto para a posic original
+	let objTransladado = m4.translation(1, 1, 1, obj)
+	
+	let objRotacionado = m4.multiply(m4.xRotation(degToRad(-angle)), objTransladado)
+	
+	return m4.multiply(m4.translation(-1, -1, -1), objRotacionado)
 }
 
 function moveBack(angle, obj) {
-	let objTransladado = m4.translation(1, 1, 1, obj)
-
-	let objRotacionado = m4.multiply(m4.xRotation(degToRad(-angle)), objTransladado)
-
-	return m4.multiply(m4.translation(-1, -1, -1), objRotacionado)
+	let objTransladado = m4.translation(-1, 1, -1, obj)  // Posiciona o objeto na posicao correta de ancora
+	
+	let objRotacionado = m4.multiply(m4.xRotation(degToRad(angle)), objTransladado)  // Rotaciona o objeto
+	
+	return m4.multiply(m4.translation(1, -1, 1), objRotacionado)  // Volta o objeto para a posic original
 }
 
 function moveRight(angle, obj) {
@@ -360,6 +361,7 @@ function start_next_movement() {
 
 	updateObjsPosition()
 	if (isGameover()) {
+		showGameOver()
 		gameStoped = true
 		return
 	}
@@ -386,18 +388,18 @@ function updateObjsPosition() {
 		let objMovement = movement_list[i]
 
 		if (objMovement == FOWARD) {
-			if (obj[2] >= GRID_SIZE) {  
-				obj[2] = -GRID_SIZE
-			}
-			else {
-				obj[2] += 1
-			}
-		} else if (objMovement == BACK) {
 			if (obj[2] <= -GRID_SIZE) {
 				obj[2] = GRID_SIZE
 			}
 			else {
 				obj[2] -= 1
+			}
+		} else if (objMovement == BACK) {
+			if (obj[2] >= GRID_SIZE) {  
+				obj[2] = -GRID_SIZE
+			}
+			else {
+				obj[2] += 1
 			}
 		} else if (objMovement == LEFT) {
 			if (obj[0] <= -GRID_SIZE) {
@@ -437,11 +439,11 @@ function update_teleport_objs() {
 		let objMovement = movement_list[i]
 
 		if (objMovement == FOWARD && obj[2] >= GRID_SIZE) {  // deve ter um teleporte para a parte de trás
-			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], -GRID_SIZE - 1)})
+			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], GRID_SIZE + 1)})
 			teleport_animation_movement_list.push(FOWARD)
 		}
 		else if (objMovement == BACK && obj[2] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da frente
-			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], GRID_SIZE + 1)})
+			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], -GRID_SIZE - 1)})
 			teleport_animation_movement_list.push(BACK)
 		}
 		else if (objMovement == LEFT && obj[0] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da direita
@@ -529,4 +531,14 @@ function resizeCanvasToDisplaySize(canvas) {
 
 function degToRad(deg) {
 	return deg * Math.PI / 180;
+}
+
+function hideGameOver() {
+	const gameover = document.querySelector('.gameover');
+	gameover.style.cssText = 'visibility: hidden;'
+}
+
+function showGameOver() {
+	const gameover = document.querySelector('.gameover');
+	gameover.style.cssText = 'visibility: visible;'
 }

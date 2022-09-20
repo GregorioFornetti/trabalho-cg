@@ -11,28 +11,42 @@
 	<script type="text/javascript" src="js/obj.js"></script>
 	<script type="text/javascript" src="js/flatten.js"></script>
 	<script type="text/javascript" src="js/main.js"></script>
+	<link rel="stylesheet" href="style.css">
+
+	<!-- fonte -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Nabla&family=Press+Start+2P&family=Roboto&display=swap" rel="stylesheet"> 
 </head>
 
-<body style="background-color: rgb(200, 200, 200)">
-	<h1 style="text-align: center;">Jogo da cobra</h1>
+<body>
+	<section class="container">
 
-	<div style="margin: auto; width: fit-content;">
-		<canvas id="gl-canvas" width="430" height="512">
-			Oops ... your browser doesn't support the HTML5 canvas
-			element
-		</canvas>
-	</div>
+		<h1 class="titulo">Jogo da cobrinha</h1>
+		<p class="score" id='score'>Pontuação: 0<p>
+		
+		<div class="jogo">
+			<canvas id="gl-canvas">
+				Oops ... your browser doesn't support the HTML5 canvas
+				element
+			</canvas>
+		</div>
 
-	<div style="margin: auto; width: fit-content;">
-		<button id="start_game">Começar</button>
-		<button id="move_foward">Cima</button>
-		<button id="move_back">Baixo</button>
-		<button id="move_left">Esquerda</button>
-		<button id="move_right">Direita</button>
-	</div>
+		<div class="comandos">
+			
+			<button class="start" id="start_game">Começar</button>
+			<button class="cima" id="move_foward">▲</button>
+			<button class="baixo" id="move_back">▼</button>
+			<button class="esquerda" id="move_left">◄</button>
+			<button class="direita" id="move_right">►</button>
+		</div>
+		<div class="gameover">
 
-	<p id='score' style="text-align: center;"></p>
-	<p id='level' style="text-align: center;"></p>
+
+			<p class="">GAMEOVER</p>
+		</div>
+	</section>
+
 </body>
 
 </html>
