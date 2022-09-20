@@ -91,8 +91,17 @@ button:hover {
 }
 
 .gameover {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.2);
+    width: 430px;
+    height: 512px;
+    visibility: hidden;
+}
+
+.gameover > p {
     font-size: 3rem;
     font-family: 'Press Start 2P', cursive;
-    position: absolute;
-    visibility: hidden;
 }
