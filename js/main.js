@@ -1,6 +1,6 @@
 "use strict";
 
-const GRID_SIZE = 5  // Largura e altura da grid será GRID_SIZE * 2 + 1, para sempre ficar centralizado a primeira parte da cobra
+const GRID_SIZE = 6  // Largura e altura da grid será GRID_SIZE * 2 + 1, para sempre ficar centralizado a primeira parte da cobra
 const CUBE_SIZE = 2
 const INITIAL_SPEED = 100
 
@@ -63,10 +63,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	move_cubes_buttons = [foward_btn, back_btn, left_btn, right_btn]
 
-	foward_btn.addEventListener('click', () => move_function(FOWARD))
-	back_btn.addEventListener('click', () => move_function(BACK))
-	left_btn.addEventListener('click', () => move_function(LEFT))
-	right_btn.addEventListener('click', () => move_function(RIGHT))
+	foward_btn.addEventListener('click', () => {
+		if(movement_list[0] != BACK)
+			move_function(FOWARD)
+	})
+	back_btn.addEventListener('click', () => {
+		if(movement_list[0] != FOWARD)
+			move_function(BACK)
+	})
+	left_btn.addEventListener('click', () => {
+		if(movement_list[0] != RIGHT)
+			move_function(LEFT)
+	})
+	right_btn.addEventListener('click', () => {
+		if(movement_list[0] != LEFT)
+			move_function(RIGHT)
+	})
 
 	let start_game_btn = document.getElementById('start_game')
 	start_game_btn.addEventListener('click', () => restartGame())
@@ -82,7 +94,6 @@ function setLevel(newLevel) {
 	let level_element = document.getElementById('level')
 	level_element.innerText = `Nível: ${newLevel}`
 	level = newLevel
-	
 }
 
 function move_function(movement_type) {
@@ -311,8 +322,7 @@ function addSnakeBody() {
 	var lastBodyMovement = movement_list[scene.objs.length - 1] // captura o ultimo movimento da cauda
 
 	if(lastBodyMovement == FOWARD){
-		scene.objs.push(vec3(lastBody[0], lastBody[1], lastBody[2] - 1))
-		
+		scene.objs.push(vec3(lastBody[0], lastBody[1], lastBody[2] + 1))
 	}
 	if(lastBodyMovement == RIGHT){
 		scene.objs.push(vec3(lastBody[0] - 1, lastBody[1], lastBody[2]))
@@ -321,7 +331,7 @@ function addSnakeBody() {
 		scene.objs.push(vec3(lastBody[0] + 1, lastBody[1], lastBody[2]))
 	}
 	if(lastBodyMovement == BACK){
-		scene.objs.push(vec3(lastBody[0], lastBody[1], lastBody[2] + 1))
+		scene.objs.push(vec3(lastBody[0], lastBody[1], lastBody[2] - 1))
 	}
 	movement_list.push(lastBodyMovement)
 }
@@ -438,11 +448,11 @@ function update_teleport_objs() {
 		let obj = scene.objs[i]
 		let objMovement = movement_list[i]
 
-		if (objMovement == FOWARD && obj[2] >= GRID_SIZE) {  // deve ter um teleporte para a parte de trás
+		if (objMovement == FOWARD && obj[2] <= -GRID_SIZE) {  // deve ter um teleporte para a parte de trás
 			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], GRID_SIZE + 1)})
 			teleport_animation_movement_list.push(FOWARD)
 		}
-		else if (objMovement == BACK && obj[2] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da frente
+		else if (objMovement == BACK && obj[2] >= GRID_SIZE) {  // Deve ter um teleporte para a parte da frente
 			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], -GRID_SIZE - 1)})
 			teleport_animation_movement_list.push(BACK)
 		}

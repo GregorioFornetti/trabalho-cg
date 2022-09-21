@@ -37,8 +37,8 @@ body {
 }
 
 canvas {
-    width: 430px;
-    height: 512px;
+    width: 500px;
+    height: 500px;
     border: 2px solid black;
     background: no-repeat center url(https://d3ugyf2ht6aenh.cloudfront.net/stores/335/332/products/papel-de-parede-quadriculado-cinza-chumbo-com-fundo-cinza-claro-min1-cd660b7897a35528c916238714640467-480-0.jpg);
     background-size: cover;
