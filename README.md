@@ -4,10 +4,10 @@ Esse repositório contém o trabalho feito pelo grupo 8 da disciplina de process
 pelo professor Mario Liziér).
 
 Os integrantes do grupo são:
-- [Bruno Correia Rocha](https://github.com/akabrunao) - RA: 770990
-- [Maria Anita de Moura](https://github.com/A-nita) - RA: 790084
-- [Felipe de Castro Duchen Auroux](https://github.com/FelipeDuch) - RA: 793243
-- [Gregório Fornetti Azevedo](https://github.com/GregorioFornetti) - RA: 792181
+- Bruno Correia Rocha - RA: 770990
+- Maria Anita de Moura - RA: 790084
+- Felipe de Castro Duchen Auroux - RA: 793243
+- Gregório Fornetti Azevedo - RA: 792181
 
 ## Jogo da cobrinha
 

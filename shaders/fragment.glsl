@@ -1,7 +1,5 @@
 #version 300 es
   precision highp float;
-
-  const float grid_limit = 11.0;
  
   in vec3 v_normal;
   in vec4 v_position;
@@ -12,7 +10,6 @@
   out vec4 outColor;
  
   void main () {
-    outColor = vec4(0, 0, 0, 0);
     vec3 normal = normalize(v_normal);
     float fakeLight = dot(u_lightDirection, normal) * .5 + .5;
     outColor = vec4(u_diffuse.rgb * fakeLight, u_diffuse.a);

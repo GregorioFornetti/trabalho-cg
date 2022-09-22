@@ -145,19 +145,19 @@ function updateTeleportObjs() {
 		let objMovement = movementList[i]
 
 		if (objMovement == FOWARD && obj[2] <= -GRID_SIZE) {  // deve ter um teleporte para a parte de trás
-			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], GRID_SIZE + 1)})
+			scene.teleportObjs.push({bodyNumber: i, position: vec3(obj[0], obj[1], GRID_SIZE + 1)})
 			teleportAnimationMovementList.push(FOWARD)
 		}
 		else if (objMovement == BACK && obj[2] >= GRID_SIZE) {  // Deve ter um teleporte para a parte da frente
-			scene.teleportObjs.push({head: i == 0, position: vec3(obj[0], obj[1], -GRID_SIZE - 1)})
+			scene.teleportObjs.push({bodyNumber: i, position: vec3(obj[0], obj[1], -GRID_SIZE - 1)})
 			teleportAnimationMovementList.push(BACK)
 		}
 		else if (objMovement == LEFT && obj[0] <= -GRID_SIZE) {  // Deve ter um teleporte para a parte da direita
-			scene.teleportObjs.push({head: i == 0, position: vec3(GRID_SIZE + 1, obj[1], obj[2])})
+			scene.teleportObjs.push({bodyNumber: i, position: vec3(GRID_SIZE + 1, obj[1], obj[2])})
 			teleportAnimationMovementList.push(LEFT)
 		}
 		else if (objMovement == RIGHT && obj[0] >= GRID_SIZE) {  // Deve ter um telepor para a parte da esquerda
-			scene.teleportObjs.push({head: i == 0, position: vec3(-GRID_SIZE - 1, obj[1], obj[2])})
+			scene.teleportObjs.push({bodyNumber: i, position: vec3(-GRID_SIZE - 1, obj[1], obj[2])})
 			teleportAnimationMovementList.push(RIGHT)
 		}
 	}

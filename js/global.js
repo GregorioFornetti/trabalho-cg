@@ -15,6 +15,16 @@ const HEAD_COLOR = [0, 1, 0, 1]
 const BODY_COLOR = [0, 0.9, 0, 1]
 const APPLE_COLOR = [1, 0, 0, 1]
 
+const SNAKE_COLOR_1 = [185 / 255, 31 / 255, 0, 1]  // (185, 31, 0)
+const SNAKE_COLOR_2 = [1, 206 / 255, 7 / 255, 1]  // (255, 206, 8)  
+const SNAKE_COLOR_3 = [0, 0, 0, 1]
+
+const SNAKE_COLOR_MAP = [
+    SNAKE_COLOR_1,
+    SNAKE_COLOR_2,
+    SNAKE_COLOR_3
+]
+
 
 var gl;
 var program;
