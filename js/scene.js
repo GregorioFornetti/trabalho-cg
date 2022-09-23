@@ -29,7 +29,7 @@ function loadScene(model) {
 
 	// Make a view matrix from the camera matrix.
 	const view = m4.inverse(camera);
-	const light = m4.normalize([-1, 3, 5]);
+	const light = m4.normalize([0, 100, 0]);
 
 	var projectionLocation = gl.getUniformLocation(program, "u_projection");
 	var viewLocation = gl.getUniformLocation(program, "u_view");
